@@ -14,13 +14,32 @@ class Shopping_list:
             return ("Recipie Already Exists")
         except Exception as e:
             return e
+    
+    
+    def Create_Ingredients_Table(self):
+        try:
+            self.cursor.execute(f"CREATE TABLE Ingredients (Ing_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, Ingredient char(20) NOT NULL)")
+            return None
+        except sqlite3.OperationalError:
+            return ("Ingredients table already exists")
+        except Exception as e:
+            return e
         
+    def Ingredient_exist_check(self,,table, column, value):
+
+        exist_check = f"SELECT EXISTS (SELECT 1 FROM {table} WHERE {column} = ?)"
+        self.cursor.execute(exist_check,(value,))
+        exists, = self.cursor.fetchone()
+        return bool(exists)
+
     def add_recipie(self, Recipie):
         while True:
             print("Type Break into the console to stop the code running")
             ing = input("Please Enter the Ingredient")
             if ing == "Break":
                 break
+            else:
+                
 
                 
             quant = input("Please enter the quantity of " + ing)
