@@ -5,6 +5,7 @@ class Shopping_list:
     def __init__(self):
         self.connector = sqlite3.connect("Shopping List.db")
         self.cursor = self.connector.cursor()
+        self.active_table = None
 
 
     def Create_Tables(self,Recipie):
@@ -47,20 +48,36 @@ class Shopping_list:
             value_ID = self.cursor.fetchone()
             return value_ID[0]
 
-                
+
+    def check_ingredient_input(self):
+        while True:
+            ingredient = str(input("Please enter the ingredient: "))
+            if 0 < len(ingredient) <= 20:
+                return ingredient
+            else:
+                print("The input is limited to 20 characters. Please Reneter")
+    
+    def check_quantity_input(self):
+        while True:
+            Quant = int(input("Please enter the Quantity: "))
+            if type(Quant) == int and 0 < Quant <= 2000  :
+                return Quant
+            else:
+                print("Only enter an interger below 2000")
+
 
     def add_recipie(self, Recipie):
         print("Type Done into the console to stop the code running")
         while True:
             
-            ing = input("Please Enter the Ingredient")
+            ing = self.check_ingredient_input()
             value_ID = self.Ingredient_exist_check(table = "Ingredients", column = "Ingredient", value = ing)
             if ing == "Break":
                 break
             
 
                 
-            quant = input("Please enter the quantity of " + ing)
+            quant = self.check_quantity_input()
             if quant == "Break":
                 break
 
@@ -83,14 +100,53 @@ class Shopping_list:
             Table.append(row)
         print(tabulate(Table, headers='firstrow', tablefmt='fancy_grid'))
 
-    def view_all_tables(self)
+    def view_all_tables(self):
         try:
-            
-Shopping_list().Create_Ingredients_Table()
-Shopping_list().Create_Tables(Recipie= "Test12")
+            view_all_tables = f"SELECT name FROM sqlite_master WHERE type='table'"
+            self.cursor.execute(view_all_tables)
+            view_all_tables = self.cursor.fetchall()
+            Table_table = [["Recipies"]]
+            for row in view_all_tables:
+                Table_table.append(row)
+            print(tabulate(Table_table, headers='firstrow', tablefmt='fancy_grid'))
+        except Exception as e:
+            print(f"OperationalError: {e}")
+    
+    def select_table_to_view(self,table):
+        self.active_table = table
+        return table
+    
+    def delete_item_from_table(self, table, item):
+
+
+
+    def Main_code(self):
+
+        print("Type 'Break' to exit the code")
+
+        while True:
+            print("Please select from the following options:")
+            print("1. View and Edit Recipies")
+            print("2. View this weeks meal plan")
+            print("3. Create a custom shopping list for this week")
+            print("4. Add a new recipie")
+
+            while True:
+                response = ("Input: ")
+                if response = 1:
+                    Shopping_list.view_all_tables()
+                    #Add in def for entering and editing a table
+
+
+
+
+
+#Shopping_list().Create_Ingredients_Table()
+#Shopping_list().Create_Tables(Recipie= "Test12")
 
 Shopping_list().add_recipie(Recipie="Test12")
 Shopping_list().view_recipie(Recipie="Test12")
+Shopping_list().view_all_tables()
 
 
 
