@@ -1,5 +1,5 @@
 import sqlite3
-
+from tabulate import tabulate
 
 class Shopping_list:
     def __init__(self):
@@ -9,7 +9,7 @@ class Shopping_list:
 
     def Create_Tables(self,Recipie):
         try:
-            self.cursor.execute(f"CREATE TABLE {Recipie} (Ingredient TEXT PRIMARY KEY, Ing_ID int NOT NULL, quantity int NOT NULL)")
+            self.cursor.execute(f"CREATE TABLE {Recipie} (Ingredient TEXT PRIMARY KEY, quantity int NOT NULL, Ing_ID int NOT NULL)")
             return None
         except sqlite3.OperationalError:
             return ("Recipie Already Exists")
@@ -50,12 +50,11 @@ class Shopping_list:
                 
 
     def add_recipie(self, Recipie):
+        print("Type Done into the console to stop the code running")
         while True:
-            print("Type Break into the console to stop the code running")
             
             ing = input("Please Enter the Ingredient")
             value_ID = self.Ingredient_exist_check(table = "Ingredients", column = "Ingredient", value = ing)
-            print(value_ID)
             if ing == "Break":
                 break
             
@@ -66,22 +65,32 @@ class Shopping_list:
                 break
 
                 
-            add_recipie_row = f"INSERT INTO {Recipie}(Ingredient, Ing_ID, quantity) VALUES (?,?,?)"
+            add_recipie_row = f"INSERT INTO {Recipie}(Ingredient, quantity, Ing_ID) VALUES (?,?,?)"
             try:
-                self.cursor.execute(add_recipie_row,(ing,value_ID, quant))
+                self.cursor.execute(add_recipie_row,(ing, quant, value_ID))
                 self.connector.commit()
             except sqlite3.IntegrityError:
                 print(ing + " is already in list, please add another ingredient")
             except Exception as e:
                 print(f"OperationalError: {e}")
+    
+    def view_recipie(self, Recipie):
+        view_Recipie = f"SELECT * FROM {Recipie}"
+        self.cursor.execute(view_Recipie)
+        view_Recipie = self.cursor.fetchall()
+        Table = [["Ingredient","Quantity","ID"]]
+        for row in view_Recipie:
+            Table.append(row)
+        print(tabulate(Table, headers='firstrow', tablefmt='fancy_grid'))
 
-
-        
+    def view_all_tables(self)
+        try:
+            
 Shopping_list().Create_Ingredients_Table()
-Shopping_list().Create_Tables(Recipie= "test")
+Shopping_list().Create_Tables(Recipie= "Test12")
 
-Shopping_list().add_recipie(Recipie="test")
-
+Shopping_list().add_recipie(Recipie="Test12")
+Shopping_list().view_recipie(Recipie="Test12")
 
 
 
