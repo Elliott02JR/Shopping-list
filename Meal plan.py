@@ -22,15 +22,34 @@ class Shopping_list:
     
     
     def Create_Ingredients_Table(self):
-        try:
-            self.cursor.execute(f"CREATE TABLE IF NOT EXISTS Ingredients (Ing_ID INTEGER PRIMARY KEY AUTOINCREMENT, Ingredient char(20) NOT NULL)")
-            print("Ingredients table created")
-            return None
-        except sqlite3.OperationalError:
-            return ("Ingredients table already exists")
-        except Exception as e:
-            #return e
-            print(f"OperationalError: {e}")
+        while True:
+            try:
+                self.cursor.execute(f"CREATE TABLE IF NOT EXISTS Ingredients (Ing_ID INTEGER PRIMARY KEY AUTOINCREMENT, Ingredient char(20) NOT NULL)")
+                print("Ingredients table created")
+                return None
+            except sqlite3.OperationalError:
+                return ("Ingredients table already exists")
+            except Exception as e:
+                return e
+                print(f"OperationalError: {e}")
+    
+    def Create_Mealplan_table(self):
+        while True:    
+            try:
+                meal_plan = "Meal Plan"
+                days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+                self.cursor.execute(f"CREATE TABLE IF NOT EXISTS 'Meal Plan' (day TEXT NOT NULL PRIMARY KEY, meal TEXT NOT NULL) ")
+                
+                for day in days_of_week:
+                    self.cursor.execute(f"INSERT OR IGNORE INTO 'Meal Plan' (day, meal) VALUES (?,?)", (day,""))
+                self.connector.commit()
+                print("Meal Plan table created")
+                return None
+            except sqlite3.OperationalError:
+                return ("Meal Plan table already exists")
+            except Exception as e:
+                return e
+                print(f"OperationalError: {e}")
 
     def Ingredient_exist_check(self,table, column, value):
 
@@ -122,6 +141,7 @@ class Shopping_list:
             view_all_tables = f"SELECT name FROM sqlite_master WHERE type='table'"
             self.cursor.execute(view_all_tables)
             view_all_tables = self.cursor.fetchall()
+            print("Debug: Retrieved tables:", view_all_tables)
             Table_table = [["Recipies"]]
             for row in view_all_tables:
                 Table_table.append(row)
@@ -201,26 +221,94 @@ class Shopping_list:
                 elif selection_int == 3:
                     self.add_recipie(Recipie=self.active_table)
                     break
+    
+    def view_meal_plan(self):
+        while True:
+            try:
+                view_meal_plan = f"SELECT day, meal FROM 'Meal Plan'"
+                self.cursor.execute(view_meal_plan)
+                view_meal_plan = self.cursor.fetchall()
+                Table = [["Day Of the Week","Meal"]]
+                for row in view_meal_plan:
+                    Table.append(row)
+                print(tabulate(Table, headers='firstrow', tablefmt='fancy_grid'))
+                return
+            except sqlite3.IntegrityError:
+                print("Meal Plan does not exist")
+            except Exception as e:
+                print(f"OperationalError: {e}")
+
+    def edit_meal_plan(self):
+        select_day = input("Which Day would you like to edit?")
+        find_day = f"SELECT * FROM 'Meal Plan' WHERE day = ?"
+        self.cursor.execute(find_day,(select_day,))
+        old_values = self.cursor.fetchall()
+        table_table = [["Day","Meal"],old_values]
+        print(tabulate(table_table, headers='firstrow', tablefmt='fancy_grid'))
+        print("Please enter new values")
+        new_meal = self.check_recipie_input()
+        print(new_meal, select_day)
+        try:
+            update_table = f"UPDATE 'Meal Plan' SET meal = ? Where day = ? "
+            self.cursor.execute(update_table,(new_meal, select_day))
+            self.connector.commit()
+            print ("Table updated")
+        except Exception as e:
+            print(f"OperationalError: {e}")
+
+    def view_and_edit_meal_plan(self,table):
+        self.active_table = table
+        while True:
+            print("Now Showing: " + self.active_table)
+            self.view_meal_plan()
+            print("Please select one of the following options:")
+            print("1.Edit Meal")
+            print("2.Return to Menu")
+            while True:
+                selection_int = self.check_int_input()
+                if  selection_int == 2:
+                    self.exit_table()
+                    return
+                elif selection_int == 1:
+                    self.edit_meal_plan()
+                    break
+                
+
+
+        
+
 
     def Main_code(self):
+        self.Create_Ingredients_Table()
+        self.Create_Mealplan_table()
         while True:
             self.view_all_tables()
             print("Please select from the following options:")
             print("1. View and Edit Recipie")
-            print("2. View this weeks meal plan")
+            print("2. View and Edit this weeks meal plan")
             print("3. Create a custom shopping list for this week")
             print("4. Add a new recipie")
+            print("5. Save and Exit")
 
             while True:
                 response = self.check_int_input()
-                recipie_name = input("Recipie: ")
                 if response == 1:
-                    
+                    recipie_name = input("Recipie: ") 
+                    if recipie_name == "Meal Plan":
+                        print("To View the Meal Plan table please select option 2")
+                        break  
                     self.view_and_edit_table(table=recipie_name)
                     break
                 elif response == 4:
                     self.Create_Tables()
                     break
+                elif response == 2:
+                    self.view_and_edit_meal_plan(table='Meal Plan')
+                    break
+                elif response == 5:
+                    return
+        self.connector.commit()
+
 
 
 Shopping_list().Main_code()
