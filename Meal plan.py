@@ -92,13 +92,20 @@ class Shopping_list:
                 print(f"OperationalError: {e}")
     
     def view_recipie(self, Recipie):
-        view_Recipie = f"SELECT * FROM {Recipie}"
-        self.cursor.execute(view_Recipie)
-        view_Recipie = self.cursor.fetchall()
-        Table = [["Ingredient","Quantity","ID"]]
-        for row in view_Recipie:
-            Table.append(row)
-        print(tabulate(Table, headers='firstrow', tablefmt='fancy_grid'))
+        while True:
+            try:
+                view_Recipie = f"SELECT Ingredient, quantity, Ing_ID FROM {Recipie}"
+                self.cursor.execute(view_Recipie)
+                view_Recipie = self.cursor.fetchall()
+                Table = [["Ingredient","Quantity","ID"]]
+                for row in view_Recipie:
+                    Table.append(row)
+                print(tabulate(Table, headers='firstrow', tablefmt='fancy_grid'))
+                return
+            except sqlite3.IntegrityError:
+                print("Recipie: " + Recipie + "does not exist. Please renter")
+            except Exception as e:
+                print(f"OperationalError: {e}")
 
     def view_all_tables(self):
         try:
@@ -116,25 +123,84 @@ class Shopping_list:
         self.active_table = table
         return table
     
-    def delete_item_from_table(self, table, item):
+    
+    
+    def check_int_input(self):
+        while True:
+            selection_int = int(input("Please enter the number: "))
+            if type(selection_int) == int and 0 < selection_int <= 10  :
+                return selection_int
+            else:
+                print("Please Type a number under 10")
+    
+    def exit_table(self):
+        self.active_table = None
+
+    def edit_recipie_ingredient(self):
+        select_ingredient = input("Which ingredient would you like to edit?")
+        find_ingredient = f"SELECT * FROM {self.active_table} WHERE Ingredient = ?"
+        self.cursor.execute(find_ingredient,(select_ingredient,))
+        old_values = self.cursor.fetchall()
+        table_table = [["Ingredient","Quantity","ID"],old_values]
+        print(tabulate(table_table, headers='firstrow', tablefmt='fancy_grid'))
+        print("Please enter new values")
+        new_ing = self.check_ingredient_input()
+        new_quant = self.check_quantity_input()
+        
+        try:
+            update_table = f"UPDATE {self.active_table} SET Ingredient = ?, quantity = ?, Ing_ID = ? Where Ingredient = ? "
+            new_ID = self.Ingredient_exist_check(table = "Ingredients", column= "Ingredient" , value= new_ing)
+            self.cursor.execute(update_table,(new_ing, new_quant, new_ID, select_ingredient))
+        except Exception as e:
+            print(f"OperationalError: {e}")
+            
+
+    def view_and_edit_table(self,table):
+        self.active_table = table
+        while True:
+            print("Now Showing: " + self.active_table)
+            self.view_recipie(Recipie= self.active_table)
+            print("Please select one of the following options:")
+            print("1.Edit Ingredient")
+            print("2.Remove Ingredient")
+            print("3.Add Ingredient")
+            print("4.Return to Menu")
+            while True:
+                selection_int = self.check_int_input()
+                if  selection_int == 4:
+                    self.exit_table()
+                    return
+                elif selection_int == 1:
+                    self.edit_recipie_ingredient()
+                    break
+                    
+
+                    
+            
+
+
+
 
 
 
     def Main_code(self):
-
-        print("Type 'Break' to exit the code")
-
-        while True:
+                while True:
+            self.view_all_tables()
             print("Please select from the following options:")
-            print("1. View and Edit Recipies")
+            print("1. View and Edit Recipie")
             print("2. View this weeks meal plan")
             print("3. Create a custom shopping list for this week")
             print("4. Add a new recipie")
 
             while True:
-                response = ("Input: ")
-                if response = 1:
-                    Shopping_list.view_all_tables()
+                response = self.check_int_input()
+                recipie_name = input("Recipie: ")
+                if response == 1:
+                    
+                    self.view_and_edit_table(table=recipie_name)
+                    break
+                
+                    
                     #Add in def for entering and editing a table
 
 
@@ -144,11 +210,11 @@ class Shopping_list:
 #Shopping_list().Create_Ingredients_Table()
 #Shopping_list().Create_Tables(Recipie= "Test12")
 
-Shopping_list().add_recipie(Recipie="Test12")
-Shopping_list().view_recipie(Recipie="Test12")
-Shopping_list().view_all_tables()
+#Shopping_list().add_recipie(Recipie="Test12")
+#Shopping_list().view_recipie(Recipie="Test12")
+#Shopping_list().view_all_tables()
 
-
+Shopping_list().Main_code()
 
 
 
