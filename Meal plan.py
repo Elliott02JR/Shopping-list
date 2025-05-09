@@ -8,14 +8,17 @@ class Shopping_list:
         self.active_table = None
 
 
-    def Create_Tables(self,Recipie):
-        try:
-            self.cursor.execute(f"CREATE TABLE {Recipie} (Ingredient TEXT PRIMARY KEY, quantity int NOT NULL, Ing_ID int NOT NULL)")
-            return None
-        except sqlite3.OperationalError:
-            return ("Recipie Already Exists")
-        except Exception as e:
-            return e
+    def Create_Tables(self):
+            while True:
+                try:
+                    Recipie = self.check_recipie_input()
+                    self.cursor.execute(f"CREATE TABLE {Recipie} (Ingredient TEXT PRIMARY KEY, quantity int NOT NULL, Ing_ID int NOT NULL)")
+                    print("Recipie " + Recipie +"succesfully Created" )
+                    return None
+                except sqlite3.OperationalError:
+                    return ("Recipie Already Exists")
+                except Exception as e:
+                    return e
     
     
     def Create_Ingredients_Table(self):
@@ -47,7 +50,14 @@ class Shopping_list:
             self.cursor.execute(value_ID,(value,))
             value_ID = self.cursor.fetchone()
             return value_ID[0]
-
+    
+    def check_recipie_input(self):
+        while True:
+            recipie_name = str(input("Please enter the recipie: "))
+            if 0 < len(recipie_name) <= 40:
+                return recipie_name
+            else:
+                print("The input is limited to 40 characters. Please Reneter")
 
     def check_ingredient_input(self):
         while True:
@@ -67,7 +77,7 @@ class Shopping_list:
 
 
     def add_recipie(self, Recipie):
-        print("Type Done into the console to stop the code running")
+        print("Type Break into the console to stop the code running")
         while True:
             
             ing = self.check_ingredient_input()
@@ -154,6 +164,18 @@ class Shopping_list:
         except Exception as e:
             print(f"OperationalError: {e}")
             
+    def remove_ingredient(self):
+        while True:
+            try:
+                ing_delete = self.check_ingredient_input()
+                delete_row = f"DELETE from {self.active_table} where Ingredient = ?"
+                self.cursor.execute(delete_row,(ing_delete,))
+                return
+            except sqlite3.OperationalError:
+                print ("This ingredient was not in the list")
+
+    
+
 
     def view_and_edit_table(self,table):
         self.active_table = table
@@ -173,18 +195,15 @@ class Shopping_list:
                 elif selection_int == 1:
                     self.edit_recipie_ingredient()
                     break
-                    
-
-                    
-            
-
-
-
-
-
+                elif selection_int == 2:
+                    self.remove_ingredient()
+                    break
+                elif selection_int == 3:
+                    self.add_recipie(Recipie=self.active_table)
+                    break
 
     def Main_code(self):
-                while True:
+        while True:
             self.view_all_tables()
             print("Please select from the following options:")
             print("1. View and Edit Recipie")
@@ -199,20 +218,10 @@ class Shopping_list:
                     
                     self.view_and_edit_table(table=recipie_name)
                     break
-                
-                    
-                    #Add in def for entering and editing a table
+                elif response == 4:
+                    self.Create_Tables()
+                    break
 
-
-
-
-
-#Shopping_list().Create_Ingredients_Table()
-#Shopping_list().Create_Tables(Recipie= "Test12")
-
-#Shopping_list().add_recipie(Recipie="Test12")
-#Shopping_list().view_recipie(Recipie="Test12")
-#Shopping_list().view_all_tables()
 
 Shopping_list().Main_code()
 
