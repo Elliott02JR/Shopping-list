@@ -12,7 +12,7 @@ class Shopping_list:
             while True:
                 try:
                     self.cursor.execute(f'CREATE TABLE IF NOT EXISTS "{Recipie}" (Ingredient TEXT PRIMARY KEY, quantity int NOT NULL, Ing_ID int NOT NULL)')
-                    print("Recipie " + Recipie +"succesfully Created" )
+                    print("Table " + Recipie +"succesfully Created" )
                     self.connector.commit()
                     return None
                 except sqlite3.OperationalError:
@@ -32,6 +32,16 @@ class Shopping_list:
                 return ("Ingredients table already exists")
             except Exception as e:
                 return e
+    def create_shopping_list(self):
+        while True:
+            try:
+                self.cursor.execute(f"CREATE TABLE IF NOT EXISTS 'Shopping List' (Ingredient char(20) PRIMARY KEY, Quantity INT NOT NULL)")
+                return None
+            except sqlite3.OperationalError:
+                return ("Shopping table already exists")
+            except Exception as e:
+                return e
+
 
     def Create_Ingredients_Table(self):
         while True:
@@ -221,9 +231,7 @@ class Shopping_list:
                 print(f"OperationalError: {e}")
                 return e
                 
-                
-
-
+    
     def view_and_edit_table(self,table):
         self.active_table = table
         while True:
@@ -300,17 +308,59 @@ class Shopping_list:
                     return
                 elif selection_int == 1:
                     self.edit_meal_plan()
-                    break
-                
+                    break     
+    def add_row(self,table,column, column2,column_value, column2_value):
+        add_row_sql = f'INSERT INTO "{table}" ({column}, {column2}) VALUES (?,?)'
+        self.cursor.execute(add_row_sql,(column_value,column2_value))
+
+    def check_ing_in_shopping_list(self,ingredient,table):
+        check_ingredient = f'SELECT EXISTS (SELECT 1 FROM "{table}" WHERE "{ingredient}" = ?)'
+        self.cursor.execute(check_ingredient,(ingredient,))
+        exists, = self.cursor.fetchone()
+        if bool(exists):
+            return True
+        else:
+            return False
+
+    
+    def combine_ingredients(self,meal_plan_table,shopping_list_table):
+        meal_plan = f'SELECT meal FROM "{meal_plan_table}"'
+        self.cursor.execute(meal_plan)
+        meal_plan = self.cursor.fetchall()
+        for row in meal_plan:
+            find_recipie_table = f'SELECT Ingredient, Quantity FROM "{row[0]}"'
+            self.cursor.execute(find_recipie_table)
+            find_recipie_table = self.cursor.fetchall()
+            for rows in find_recipie_table:
+                print(rows)
+                ingredient_to_add = rows[0]
+                quantity_to_add = int(rows[1])
+                print(quantity_to_add)
+                exists = self.check_ing_in_shopping_list(ingredient=ingredient_to_add, table=shopping_list_table)
+                if exists == True:
+                    old_quant = self.cursor.execute(f'SELECT Quantity FROM "{shopping_list_table}" WHERE Ingredient = "{ingredient_to_add}"')
+                    old_quant = old_quant.fetchone()
+                    for row in old_quant:
+                        print(row)
+                    old_quant = int(old_quant[0])
+                    quantity_to_add = old_quant + quantity_to_add
+                    print(quantity_to_add)
+
+                    
+                    find_ingredient = f'UPDATE "{shopping_list_table}" SET quantity = ? '
+                if exists == False:
+                    self.add_row(table=shopping_list_table,column="Ingredient", column2= "Quantity", column_value=ingredient_to_add, column2_value=quantity_to_add)
+
 
 
         
-
+        
 
     def Main_code(self):
         self.Create_Ingredients_Table()
         self.Create_Mealplan_table()
         self.create_all_recipies()
+        self.create_shopping_list()
         while True:
             self.view_all_tables(table= "'All Recipies'")
             print("Please select from the following options:")
@@ -338,6 +388,9 @@ class Shopping_list:
                     break
                 elif response == 2:
                     self.view_and_edit_meal_plan(table='Meal Plan')
+                    break
+                elif response == 3:
+                    self.combine_ingredients(meal_plan_table='Meal Plan',shopping_list_table='Shopping List')
                     break
                 elif response == 6:
                     self.connector.commit()
