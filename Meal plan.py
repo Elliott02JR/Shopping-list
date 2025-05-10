@@ -8,19 +8,31 @@ class Shopping_list:
         self.active_table = None
 
 
-    def Create_Tables(self):
+    def Create_Tables(self,Recipie):
             while True:
                 try:
-                    Recipie = self.check_recipie_input()
-                    self.cursor.execute(f"CREATE TABLE {Recipie} (Ingredient TEXT PRIMARY KEY, quantity int NOT NULL, Ing_ID int NOT NULL)")
+                    self.cursor.execute(f'CREATE TABLE IF NOT EXISTS "{Recipie}" (Ingredient TEXT PRIMARY KEY, quantity int NOT NULL, Ing_ID int NOT NULL)')
                     print("Recipie " + Recipie +"succesfully Created" )
+                    self.connector.commit()
                     return None
                 except sqlite3.OperationalError:
-                    return ("Recipie Already Exists")
+                    print ("Recipie Already Exists")
+                    return
                 except Exception as e:
+                    print(e)
                     return e
     
     
+    def create_all_recipies(self):
+        while True:
+            try:
+                self.cursor.execute(f"CREATE TABLE IF NOT EXISTS 'All Recipies' (Recipie_ID INTEGER PRIMARY KEY AUTOINCREMENT, Recipie char(40) NOT NULL)")
+                return None
+            except sqlite3.OperationalError:
+                return ("Ingredients table already exists")
+            except Exception as e:
+                return e
+
     def Create_Ingredients_Table(self):
         while True:
             try:
@@ -31,7 +43,7 @@ class Shopping_list:
                 return ("Ingredients table already exists")
             except Exception as e:
                 return e
-                print(f"OperationalError: {e}")
+
     
     def Create_Mealplan_table(self):
         while True:    
@@ -51,21 +63,22 @@ class Shopping_list:
                 return e
                 print(f"OperationalError: {e}")
 
-    def Ingredient_exist_check(self,table, column, value):
+    def Ingredient_exist_check(self,table, column, value, ID_column):
 
-        exist_check = f"SELECT EXISTS (SELECT 1 FROM {table} WHERE {column} = ?)"
+        exist_check = f'SELECT EXISTS (SELECT 1 FROM "{table}" WHERE "{column}" = ?)'
         self.cursor.execute(exist_check,(value,))
         exists, = self.cursor.fetchone()
         if bool(exists):
-            value_ID = f"SELECT Ing_ID FROM {table} WHERE {column} = ?"
+            value_ID = f'SELECT "{ID_column}" FROM "{table}" WHERE "{column}" = ?'
             self.cursor.execute(value_ID,(value,))
             value_ID = self.cursor.fetchone()
             return value_ID[0]
         else:
-            add_ingredient = f"INSERT INTO {table} ({column}) VALUES (?)"
+            add_ingredient = f'INSERT INTO "{table}" ({column}) VALUES (?)'
             self.cursor.execute(add_ingredient,(value,))
             self.connector.commit()
-            value_ID = f"SELECT Ing_ID FROM {table} WHERE {column} = ?"
+            value_ID = f'SELECT "{ID_column}" FROM "{table}" WHERE "{column}" = ?'
+        
             self.cursor.execute(value_ID,(value,))
             value_ID = self.cursor.fetchone()
             return value_ID[0]
@@ -88,8 +101,8 @@ class Shopping_list:
     
     def check_quantity_input(self):
         while True:
-            Quant = int(input("Please enter the Quantity: "))
-            if type(Quant) == int and 0 < Quant <= 2000  :
+            Quant = float(input("Please enter the Quantity: "))
+            if type(Quant) == float and 0 < Quant <= 2000  :
                 return Quant
             else:
                 print("Only enter an interger below 2000")
@@ -100,7 +113,7 @@ class Shopping_list:
         while True:
             
             ing = self.check_ingredient_input()
-            value_ID = self.Ingredient_exist_check(table = "Ingredients", column = "Ingredient", value = ing)
+            value_ID = self.Ingredient_exist_check(table = "Ingredients", column = "Ingredient", value = ing, ID_column='Ing_ID')
             if ing == "Break":
                 break
             
@@ -111,7 +124,7 @@ class Shopping_list:
                 break
 
                 
-            add_recipie_row = f"INSERT INTO {Recipie}(Ingredient, quantity, Ing_ID) VALUES (?,?,?)"
+            add_recipie_row = f'INSERT INTO "{Recipie}" (Ingredient, quantity, Ing_ID) VALUES (?,?,?)'
             try:
                 self.cursor.execute(add_recipie_row,(ing, quant, value_ID))
                 self.connector.commit()
@@ -123,7 +136,7 @@ class Shopping_list:
     def view_recipie(self, Recipie):
         while True:
             try:
-                view_Recipie = f"SELECT Ingredient, quantity, Ing_ID FROM {Recipie}"
+                view_Recipie = f'SELECT Ingredient, quantity, Ing_ID FROM "{Recipie}"'
                 self.cursor.execute(view_Recipie)
                 view_Recipie = self.cursor.fetchall()
                 Table = [["Ingredient","Quantity","ID"]]
@@ -136,9 +149,9 @@ class Shopping_list:
             except Exception as e:
                 print(f"OperationalError: {e}")
 
-    def view_all_tables(self):
+    def view_all_tables(self,table):
         try:
-            view_all_tables = f"SELECT name FROM sqlite_master WHERE type='table'"
+            view_all_tables = f"SELECT Recipie FROM {table}"
             self.cursor.execute(view_all_tables)
             view_all_tables = self.cursor.fetchall()
             print("Debug: Retrieved tables:", view_all_tables)
@@ -184,17 +197,31 @@ class Shopping_list:
         except Exception as e:
             print(f"OperationalError: {e}")
             
-    def remove_ingredient(self):
+    def remove_row(self,table, column, value):
         while True:
             try:
-                ing_delete = self.check_ingredient_input()
-                delete_row = f"DELETE from {self.active_table} where Ingredient = ?"
-                self.cursor.execute(delete_row,(ing_delete,))
+                delete_row = f'DELETE from "{table}" where "{column}" = ?'
+                self.cursor.execute(delete_row,(value,))
                 return
             except sqlite3.OperationalError:
-                print ("This ingredient was not in the list")
+                print ("This was not in the list")
+                return
 
-    
+    def drop_table(self, table_to_drop):
+        while True:
+            try:
+                drop_table = f"DROP TABLE '{table_to_drop}'"
+                self.cursor.execute(drop_table)
+                print("Table " + table_to_drop + " has been dropped")
+                return
+            except sqlite3.OperationalError:
+                print ("This table does not exist")
+                return
+            except Exception as e:
+                print(f"OperationalError: {e}")
+                return e
+                
+                
 
 
     def view_and_edit_table(self,table):
@@ -216,11 +243,13 @@ class Shopping_list:
                     self.edit_recipie_ingredient()
                     break
                 elif selection_int == 2:
-                    self.remove_ingredient()
+                    ing_delete = self.check_ingredient_input()
+                    self.remove_row(table=self.active_table, column= "Ingredients", value=ing_delete)
                     break
                 elif selection_int == 3:
                     self.add_recipie(Recipie=self.active_table)
                     break
+
     
     def view_meal_plan(self):
         while True:
@@ -281,14 +310,16 @@ class Shopping_list:
     def Main_code(self):
         self.Create_Ingredients_Table()
         self.Create_Mealplan_table()
+        self.create_all_recipies()
         while True:
-            self.view_all_tables()
+            self.view_all_tables(table= "'All Recipies'")
             print("Please select from the following options:")
             print("1. View and Edit Recipie")
             print("2. View and Edit this weeks meal plan")
             print("3. Create a custom shopping list for this week")
             print("4. Add a new recipie")
-            print("5. Save and Exit")
+            print("5. Delete Recipie")
+            print("6. Save and Exit")
 
             while True:
                 response = self.check_int_input()
@@ -300,14 +331,24 @@ class Shopping_list:
                     self.view_and_edit_table(table=recipie_name)
                     break
                 elif response == 4:
-                    self.Create_Tables()
+                    Recipie_input = self.check_recipie_input()
+                    self.Ingredient_exist_check(table='All Recipies', column= "Recipie", value=Recipie_input,ID_column= 'Recipie_ID')
+                    self.Create_Tables(Recipie= Recipie_input)
+                    self.add_recipie(Recipie= Recipie_input)
                     break
                 elif response == 2:
                     self.view_and_edit_meal_plan(table='Meal Plan')
                     break
-                elif response == 5:
+                elif response == 6:
+                    self.connector.commit()
                     return
-        self.connector.commit()
+                elif response == 5:
+                    
+                    drop_table = self.check_recipie_input()
+                    self.remove_row(table='All Recipies',column='Recipie',value=drop_table)
+                    self.drop_table(table_to_drop=drop_table)
+                    break
+        
 
 
 
