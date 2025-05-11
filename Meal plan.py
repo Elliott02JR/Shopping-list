@@ -26,7 +26,8 @@ class Shopping_list:
     def create_all_recipies(self):
         while True:
             try:
-                self.cursor.execute(f"CREATE TABLE IF NOT EXISTS 'All Recipies' (Recipie_ID INTEGER PRIMARY KEY AUTOINCREMENT, Recipie char(40) NOT NULL)")
+                self.cursor.execute(f"CREATE TABLE IF NOT EXISTS 'All Recipies' (Recipie char(40) NOT NULL PRIMARY KEY, Portions INT NOT NULL)")
+                print("All Recipies table created")
                 return None
             except sqlite3.OperationalError:
                 return ("Ingredients table already exists")
@@ -100,6 +101,16 @@ class Shopping_list:
                 return recipie_name
             else:
                 print("The input is limited to 40 characters. Please Reneter")
+    def check_portions_input(self):
+        while True:
+            try:
+                portions = int(input("Please enter the number of portions: "))
+                if 0 < portions <= 100:
+                    return portions
+                else:
+                    print("Please enter a number between 1 and 100.")
+            except ValueError:
+                print("Please enter a valid integer.")
 
     def check_ingredient_input(self):
         while True:
@@ -161,13 +172,14 @@ class Shopping_list:
 
     def view_all_tables(self,table):
         try:
-            view_all_tables = f'SELECT Recipie FROM "{table}"'
+            view_all_tables = f'SELECT Recipie, Portions FROM "{table}"'
             self.cursor.execute(view_all_tables)
             view_all_tables = self.cursor.fetchall()
             print("Debug: Retrieved tables:", view_all_tables)
-            Table_table = [["Recipies"]]
+            Table_table = [["Recipies","Portions"]]
             for row in view_all_tables:
                 Table_table.append(row)
+                print("Debug: Appending row:", row)
             print(tabulate(Table_table, headers='firstrow', tablefmt='fancy_grid'))
         except Exception as e:
             print(f"OperationalError: {e}")
@@ -335,20 +347,24 @@ class Shopping_list:
                 print("Debug: Empty meal found, skipping...")
                 continue
             print("Debug: Meal plan row:", row[0])
+
+            self.cursor.execute(f'SELECT Portions FROM "All Recipies" WHERE Recipie = ?',(row[0],))
+            portion = self.cursor.fetchone()
+            print(portion[0])
+            portion = float(portion[0])
             find_recipie_table = f'SELECT Ingredient, Quantity FROM "{row[0]}"'
             self.cursor.execute(find_recipie_table)
             find_recipie_table = self.cursor.fetchall()
             for rows in find_recipie_table:
                 ingredient_to_add = rows[0]
-                quantity_to_add = int(rows[1])
+                quantity_to_add = float(rows[1])/portion
+                print(quantity_to_add)
 
                 exists = self.check_ing_in_shopping_list(ingredient=ingredient_to_add, table=shopping_list_table)
-                print("Debug: Ingredient exists in shopping list:", exists)
-                print("Debug: Ingredient to add:", ingredient_to_add)
                 if exists == True:
                     self.cursor.execute(f'SELECT Quantity FROM "{shopping_list_table}" WHERE Ingredient = ?', (ingredient_to_add,))
                     old_quant = self.cursor.fetchone()
-                    old_quant = int(old_quant[0])
+                    old_quant = float(old_quant[0])
                     
 
                     quantity_to_add = old_quant + quantity_to_add
@@ -372,8 +388,15 @@ class Shopping_list:
                     print("Shopping List does not exist")
                 except Exception as e:
                     print(f"OperationalError: {e}")
-        
-        
+
+    def add_to_all_recipies(self,Recipie,portions):  
+        try:
+            self.cursor.execute(f'INSERT INTO "All Recipies" (Recipie, Portions) VALUES (?,?)', (Recipie, portions))  
+            self.connector.commit
+        except sqlite3.IntegrityError:
+            print (f'Recipie already exists in All Reicpies, updating portions')
+            self.cursor.execute('UPDATE "All Recpies" SET Portions = ? WHERE Recipie = ?',(portions,Recipie))
+            self.connector.commit()
 
     def Main_code(self):
         self.Create_Ingredients_Table()
@@ -401,7 +424,9 @@ class Shopping_list:
                     break
                 elif response == 4:
                     Recipie_input = self.check_recipie_input()
-                    self.Ingredient_exist_check(table='All Recipies', column= "Recipie", value=Recipie_input,ID_column= 'Recipie_ID')
+                    Portions_input = self.check_portions_input()
+                    self.add_to_all_recipies(Recipie=Recipie_input, portions=Portions_input)
+                    #self.Ingredient_exist_check(table='All Recipies', column= "Recipie", value=Recipie_input,ID_column= 'Recipie_ID')
                     self.Create_Tables(Recipie= Recipie_input)
                     self.add_recipie(Recipie= Recipie_input)
                     break
