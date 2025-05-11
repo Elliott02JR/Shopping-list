@@ -161,7 +161,7 @@ class Shopping_list:
 
     def view_all_tables(self,table):
         try:
-            view_all_tables = f"SELECT Recipie FROM {table}"
+            view_all_tables = f'SELECT Recipie FROM "{table}"'
             self.cursor.execute(view_all_tables)
             view_all_tables = self.cursor.fetchall()
             print("Debug: Retrieved tables:", view_all_tables)
@@ -191,7 +191,7 @@ class Shopping_list:
 
     def edit_recipie_ingredient(self):
         select_ingredient = input("Which ingredient would you like to edit?")
-        find_ingredient = f"SELECT * FROM {self.active_table} WHERE Ingredient = ?"
+        find_ingredient = f'SELECT * FROM "{self.active_table}" WHERE Ingredient = ?'
         self.cursor.execute(find_ingredient,(select_ingredient,))
         old_values = self.cursor.fetchall()
         table_table = [["Ingredient","Quantity","ID"],old_values]
@@ -201,7 +201,7 @@ class Shopping_list:
         new_quant = self.check_quantity_input()
         
         try:
-            update_table = f"UPDATE {self.active_table} SET Ingredient = ?, quantity = ?, Ing_ID = ? Where Ingredient = ? "
+            update_table = f'UPDATE "{self.active_table}" SET Ingredient = ?, quantity = ?, Ing_ID = ? Where Ingredient = ? '
             new_ID = self.Ingredient_exist_check(table = "Ingredients", column= "Ingredient" , value= new_ing)
             self.cursor.execute(update_table,(new_ing, new_quant, new_ID, select_ingredient))
         except Exception as e:
@@ -212,6 +212,8 @@ class Shopping_list:
             try:
                 delete_row = f'DELETE from "{table}" where "{column}" = ?'
                 self.cursor.execute(delete_row,(value,))
+                self.connector.commit()
+                print("Row " + value + " has been deleted")
                 return
             except sqlite3.OperationalError:
                 print ("This was not in the list")
@@ -220,8 +222,9 @@ class Shopping_list:
     def drop_table(self, table_to_drop):
         while True:
             try:
-                drop_table = f"DROP TABLE '{table_to_drop}'"
+                drop_table = f'DROP TABLE "{table_to_drop}"'
                 self.cursor.execute(drop_table)
+                self.connector.commit()
                 print("Table " + table_to_drop + " has been dropped")
                 return
             except sqlite3.OperationalError:
@@ -310,7 +313,7 @@ class Shopping_list:
                     self.edit_meal_plan()
                     break     
     def add_row(self,table,column, column2,column_value, column2_value):
-        add_row_sql = f'INSERT INTO "{table}" ({column}, {column2}) VALUES (?,?)'
+        add_row_sql = f'INSERT INTO "{table}" ("{column}", "{column2}") VALUES (?,?)'
         self.cursor.execute(add_row_sql,(column_value,column2_value))
 
     def check_ing_in_shopping_list(self,ingredient,table):
@@ -362,7 +365,7 @@ class Shopping_list:
         self.create_all_recipies()
         self.create_shopping_list()
         while True:
-            self.view_all_tables(table= "'All Recipies'")
+            self.view_all_tables(table= "All Recipies")
             print("Please select from the following options:")
             print("1. View and Edit Recipie")
             print("2. View and Edit this weeks meal plan")
@@ -406,6 +409,5 @@ class Shopping_list:
 
 
 Shopping_list().Main_code()
-
 
 
