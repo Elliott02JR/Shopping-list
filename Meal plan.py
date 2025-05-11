@@ -317,7 +317,7 @@ class Shopping_list:
         self.cursor.execute(add_row_sql,(column_value,column2_value))
 
     def check_ing_in_shopping_list(self,ingredient,table):
-        check_ingredient = f'SELECT EXISTS (SELECT 1 FROM "{table}" WHERE "{ingredient}" = ?)'
+        check_ingredient = f'SELECT EXISTS (SELECT 1 FROM "{table}" WHERE Ingredient = ?)'
         self.cursor.execute(check_ingredient,(ingredient,))
         exists, = self.cursor.fetchone()
         if bool(exists):
@@ -331,31 +331,47 @@ class Shopping_list:
         self.cursor.execute(meal_plan)
         meal_plan = self.cursor.fetchall()
         for row in meal_plan:
+            if row[0] == "":
+                print("Debug: Empty meal found, skipping...")
+                continue
+            print("Debug: Meal plan row:", row[0])
             find_recipie_table = f'SELECT Ingredient, Quantity FROM "{row[0]}"'
             self.cursor.execute(find_recipie_table)
             find_recipie_table = self.cursor.fetchall()
             for rows in find_recipie_table:
-                print(rows)
                 ingredient_to_add = rows[0]
                 quantity_to_add = int(rows[1])
-                print(quantity_to_add)
+
                 exists = self.check_ing_in_shopping_list(ingredient=ingredient_to_add, table=shopping_list_table)
+                print("Debug: Ingredient exists in shopping list:", exists)
+                print("Debug: Ingredient to add:", ingredient_to_add)
                 if exists == True:
-                    old_quant = self.cursor.execute(f'SELECT Quantity FROM "{shopping_list_table}" WHERE Ingredient = "{ingredient_to_add}"')
-                    old_quant = old_quant.fetchone()
-                    for row in old_quant:
-                        print(row)
+                    self.cursor.execute(f'SELECT Quantity FROM "{shopping_list_table}" WHERE Ingredient = ?', (ingredient_to_add,))
+                    old_quant = self.cursor.fetchone()
                     old_quant = int(old_quant[0])
-                    quantity_to_add = old_quant + quantity_to_add
-                    print(quantity_to_add)
-
                     
-                    find_ingredient = f'UPDATE "{shopping_list_table}" SET quantity = ? '
-                if exists == False:
+
+                    quantity_to_add = old_quant + quantity_to_add
+                    self.cursor.execute(f'UPDATE "{shopping_list_table}" SET Quantity = ? WHERE Ingredient = ?', (quantity_to_add, ingredient_to_add))
+                else:
                     self.add_row(table=shopping_list_table,column="Ingredient", column2= "Quantity", column_value=ingredient_to_add, column2_value=quantity_to_add)
+        self.connector.commit() 
 
-
-
+    def view_shopping_list(self):
+            while True:
+                try:
+                    view_shopping_list = f'SELECT Ingredient, Quantity FROM "Shopping List"'
+                    self.cursor.execute(view_shopping_list)
+                    view_shopping_list = self.cursor.fetchall()
+                    Table = [["Ingredient","Quantity"]]
+                    for row in view_shopping_list:
+                        Table.append(row)
+                    print(tabulate(Table, headers='firstrow', tablefmt='fancy_grid'))
+                    return
+                except sqlite3.IntegrityError:
+                    print("Shopping List does not exist")
+                except Exception as e:
+                    print(f"OperationalError: {e}")
         
         
 
@@ -409,5 +425,5 @@ class Shopping_list:
 
 
 Shopping_list().Main_code()
-
+Shopping_list().view_shopping_list()
 
