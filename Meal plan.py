@@ -344,10 +344,7 @@ class Shopping_list:
         meal_plan = self.cursor.fetchall()
         for row in meal_plan:
             if row[0] == "":
-                print("Debug: Empty meal found, skipping...")
                 continue
-            print("Debug: Meal plan row:", row[0])
-
             self.cursor.execute(f'SELECT Portions FROM "All Recipies" WHERE Recipie = ?',(row[0],))
             portion = self.cursor.fetchone()
             print(portion[0])
@@ -358,7 +355,6 @@ class Shopping_list:
             for rows in find_recipie_table:
                 ingredient_to_add = rows[0]
                 quantity_to_add = float(rows[1])/portion
-                print(quantity_to_add)
 
                 exists = self.check_ing_in_shopping_list(ingredient=ingredient_to_add, table=shopping_list_table)
                 if exists == True:
@@ -386,8 +382,10 @@ class Shopping_list:
                     return
                 except sqlite3.IntegrityError:
                     print("Shopping List does not exist")
+                    return
                 except Exception as e:
                     print(f"OperationalError: {e}")
+                    return
 
     def add_to_all_recipies(self,Recipie,portions):  
         try:
@@ -397,6 +395,34 @@ class Shopping_list:
             print (f'Recipie already exists in All Reicpies, updating portions')
             self.cursor.execute('UPDATE "All Recpies" SET Portions = ? WHERE Recipie = ?',(portions,Recipie))
             self.connector.commit()
+
+    def clear_table(self, table_name):
+        try:
+            self.cursor.execute(f'DELETE FROM "{table_name}"')
+            self.connector.commit()
+            print(f"Table cleared")
+        except Exception as e:
+            print(f"Operational error: {e}")
+
+    def shopping_list(self):
+        
+        while True:
+            
+            print("Now Showing: Shopping List")
+            self.view_shopping_list()
+            print("Please select one of the following options:")
+            print("1.Create New Shopping List")
+            print("2.Return to Menu")
+            while True:
+                selection_int = self.check_int_input()
+                if  selection_int == 2:
+                    self.exit_table()
+                    return
+                elif selection_int == 1:
+                    self.clear_table(table_name='Shopping List')
+                    self.combine_ingredients(meal_plan_table='Meal Plan',shopping_list_table='Shopping List')
+                    break
+            
 
     def Main_code(self):
         self.Create_Ingredients_Table()
@@ -408,7 +434,7 @@ class Shopping_list:
             print("Please select from the following options:")
             print("1. View and Edit Recipie")
             print("2. View and Edit this weeks meal plan")
-            print("3. Create a custom shopping list for this week")
+            print("3. Create and view a custom shopping list for this week")
             print("4. Add a new recipie")
             print("5. Delete Recipie")
             print("6. Save and Exit")
@@ -434,8 +460,9 @@ class Shopping_list:
                     self.view_and_edit_meal_plan(table='Meal Plan')
                     break
                 elif response == 3:
-                    self.combine_ingredients(meal_plan_table='Meal Plan',shopping_list_table='Shopping List')
+                    self.shopping_list()
                     break
+                    
                 elif response == 6:
                     self.connector.commit()
                     return
@@ -450,5 +477,4 @@ class Shopping_list:
 
 
 Shopping_list().Main_code()
-Shopping_list().view_shopping_list()
 
