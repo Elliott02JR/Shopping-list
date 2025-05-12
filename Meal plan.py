@@ -96,37 +96,55 @@ class Shopping_list:
     
     def check_recipie_input(self):
         while True:
-            recipie_name = str(input("Please enter the recipie: "))
-            if 0 < len(recipie_name) <= 40:
-                return recipie_name
-            else:
-                print("The input is limited to 40 characters. Please Reneter")
+            try:
+                recipie_name = input("Please enter the recipie: ").strip()
+                if 0 < len(recipie_name) <= 40:
+                    return recipie_name
+                else:
+                    print("The input is limited to 40 characters. Please Reneter")
+            except ValueError:
+                print("Please return a valid integer")
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
+
     def check_portions_input(self):
         while True:
             try:
-                portions = int(input("Please enter the number of portions: "))
+                portions = int(input("Please enter the number of portions: ")).strip()
                 if 0 < portions <= 100:
                     return portions
                 else:
                     print("Please enter a number between 1 and 100.")
             except ValueError:
                 print("Please enter a valid integer.")
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
 
     def check_ingredient_input(self):
         while True:
-            ingredient = str(input("Please enter the ingredient: "))
-            if 0 < len(ingredient) <= 20:
-                return ingredient
-            else:
-                print("The input is limited to 20 characters. Please Reneter")
+            try:
+                ingredient = input("Please enter the ingredient: ").strip()
+                if 0 < len(ingredient) <= 20:
+                    return ingredient
+                else:
+                    print("The input is limited to 20 characters. Please Reneter")
+            except(EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
+            except Exception as e:
+                print(f"Unexpected error: {e}. Please try again.")
     
     def check_quantity_input(self):
         while True:
-            Quant = float(input("Please enter the Quantity: "))
-            if type(Quant) == float and 0 < Quant <= 2000  :
-                return Quant
-            else:
-                print("Only enter an interger below 2000")
+            try:
+                Quant = float(input("Please enter the Quantity: ")).strip()
+                if type(Quant) == float and 0 < Quant <= 2000  :
+                    return Quant
+                else:
+                    print("Only enter an interger below 2000")
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
+            except ValueError:
+                print("Please enter a valid number")
 
 
     def add_recipie(self, Recipie):
@@ -164,25 +182,28 @@ class Shopping_list:
                 for row in view_Recipie:
                     Table.append(row)
                 print(tabulate(Table, headers='firstrow', tablefmt='fancy_grid'))
-                return
+                return True
             except sqlite3.IntegrityError:
                 print("Recipie: " + Recipie + "does not exist. Please renter")
+                return False
             except Exception as e:
                 print(f"OperationalError: {e}")
+                return False
 
     def view_all_tables(self,table):
         try:
             view_all_tables = f'SELECT Recipie, Portions FROM "{table}"'
             self.cursor.execute(view_all_tables)
             view_all_tables = self.cursor.fetchall()
-            print("Debug: Retrieved tables:", view_all_tables)
+
             Table_table = [["Recipies","Portions"]]
             for row in view_all_tables:
                 Table_table.append(row)
-                print("Debug: Appending row:", row)
+
             print(tabulate(Table_table, headers='firstrow', tablefmt='fancy_grid'))
         except Exception as e:
             print(f"OperationalError: {e}")
+            return
     
     def select_table_to_view(self,table):
         self.active_table = table
@@ -192,11 +213,17 @@ class Shopping_list:
     
     def check_int_input(self):
         while True:
-            selection_int = int(input("Please enter the number: "))
-            if type(selection_int) == int and 0 < selection_int <= 10  :
-                return selection_int
-            else:
-                print("Please Type a number under 10")
+            try:
+                selection_int = int(input("Please enter the number: "))
+                if type(selection_int) == int and 0 < selection_int <= 10  :
+                    return selection_int
+                else:
+                    print("Please Type a number under 10")
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
+            except ValueError:
+                print("Please enter a valid number")
+            
     
     def exit_table(self):
         self.active_table = None
@@ -230,6 +257,8 @@ class Shopping_list:
             except sqlite3.OperationalError:
                 print ("This was not in the list")
                 return
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
 
     def drop_table(self, table_to_drop):
         while True:
@@ -245,33 +274,52 @@ class Shopping_list:
             except Exception as e:
                 print(f"OperationalError: {e}")
                 return e
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
+                return
                 
     
     def view_and_edit_table(self,table):
         self.active_table = table
         while True:
-            print("Now Showing: " + self.active_table)
-            self.view_recipie(Recipie= self.active_table)
-            print("Please select one of the following options:")
-            print("1.Edit Ingredient")
-            print("2.Remove Ingredient")
-            print("3.Add Ingredient")
-            print("4.Return to Menu")
-            while True:
-                selection_int = self.check_int_input()
-                if  selection_int == 4:
-                    self.exit_table()
-                    return
-                elif selection_int == 1:
-                    self.edit_recipie_ingredient()
+            try:
+                view_recipie = self.view_recipie(Recipie=self.active_table)
+                if view_recipie == True:
+                    print("Now Showing: " + self.active_table)
+                    self.view_recipie(Recipie= self.active_table)
+                else:
                     break
-                elif selection_int == 2:
-                    ing_delete = self.check_ingredient_input()
-                    self.remove_row(table=self.active_table, column= "Ingredients", value=ing_delete)
-                    break
-                elif selection_int == 3:
-                    self.add_recipie(Recipie=self.active_table)
-                    break
+                
+                print("Please select one of the following options:")
+                print("1.Edit Ingredient")
+                print("2.Remove Ingredient")
+                print("3.Add Ingredient")
+                print("4.Return to Menu")
+                while True:
+                    selection_int = self.check_int_input()
+                    if  selection_int == 4:
+                        self.exit_table()
+                        return
+                    elif selection_int == 1:
+                        self.edit_recipie_ingredient()
+                        break
+                    elif selection_int == 2:
+                        ing_delete = self.check_ingredient_input()
+                        self.remove_row(table=self.active_table, column= "Ingredients", value=ing_delete)
+                        break
+                    elif selection_int == 3:
+                        self.add_recipie(Recipie=self.active_table)
+                        break
+            except sqlite3.OperationalError:
+                print ("This table does not exist")
+                return
+            except Exception as e:
+                print(f"OperationalError: {e}")
+                return e
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
+                return
+            
 
     
     def view_meal_plan(self):
@@ -289,6 +337,8 @@ class Shopping_list:
                 print("Meal Plan does not exist")
             except Exception as e:
                 print(f"OperationalError: {e}")
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
 
     def edit_meal_plan(self):
         select_day = input("Which Day would you like to edit?")
@@ -307,23 +357,38 @@ class Shopping_list:
             print ("Table updated")
         except Exception as e:
             print(f"OperationalError: {e}")
+            return
+        except (EOFError, KeyboardInterrupt):
+            print("\nInput cancelled. Please try again.")
+            return
 
     def view_and_edit_meal_plan(self,table):
         self.active_table = table
         while True:
-            print("Now Showing: " + self.active_table)
-            self.view_meal_plan()
-            print("Please select one of the following options:")
-            print("1.Edit Meal")
-            print("2.Return to Menu")
-            while True:
-                selection_int = self.check_int_input()
-                if  selection_int == 2:
-                    self.exit_table()
-                    return
-                elif selection_int == 1:
-                    self.edit_meal_plan()
-                    break     
+            try:
+                print("Now Showing: " + self.active_table)
+                self.view_meal_plan()
+                print("Please select one of the following options:")
+                print("1.Edit Meal")
+                print("2.Return to Menu")
+                while True:
+                    selection_int = self.check_int_input()
+                    if  selection_int == 2:
+                        self.exit_table()
+                        return
+                    elif selection_int == 1:
+                        self.edit_meal_plan()
+                        break     
+            except sqlite3.OperationalError:
+                print(f"Table does not exist. Please re-enter.")
+                return
+            except Exception as e:
+                print(f"OperationalError: {e}")
+                return
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
+                return
+                
     def add_row(self,table,column, column2,column_value, column2_value):
         add_row_sql = f'INSERT INTO "{table}" ("{column}", "{column2}") VALUES (?,?)'
         self.cursor.execute(add_row_sql,(column_value,column2_value))
