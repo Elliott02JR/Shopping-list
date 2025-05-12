@@ -97,7 +97,7 @@ class Shopping_list:
     def check_recipie_input(self):
         while True:
             try:
-                recipie_name = input("Please enter the recipie: ").strip()
+                recipie_name = input("Please enter the recipie: ").strip().lower()
                 if 0 < len(recipie_name) <= 40:
                     return recipie_name
                 else:
@@ -110,7 +110,7 @@ class Shopping_list:
     def check_portions_input(self):
         while True:
             try:
-                portions = int(input("Please enter the number of portions: ")).strip()
+                portions = int(input("Please enter the number of portions: "))
                 if 0 < portions <= 100:
                     return portions
                 else:
@@ -123,7 +123,7 @@ class Shopping_list:
     def check_ingredient_input(self):
         while True:
             try:
-                ingredient = input("Please enter the ingredient: ").strip()
+                ingredient = input("Please enter the ingredient: ").strip().lower()
                 if 0 < len(ingredient) <= 20:
                     return ingredient
                 else:
@@ -136,7 +136,7 @@ class Shopping_list:
     def check_quantity_input(self):
         while True:
             try:
-                Quant = float(input("Please enter the Quantity: ")).strip()
+                Quant = float(input("Please enter the Quantity: "))
                 if type(Quant) == float and 0 < Quant <= 2000  :
                     return Quant
                 else:
@@ -153,14 +153,9 @@ class Shopping_list:
             
             ing = self.check_ingredient_input()
             value_ID = self.Ingredient_exist_check(table = "Ingredients", column = "Ingredient", value = ing, ID_column='Ing_ID')
-            if ing == "Break":
+            if ing.strip().lower() == "break":
                 break
-            
-
-                
             quant = self.check_quantity_input()
-            if quant == "Break":
-                break
 
                 
             add_recipie_row = f'INSERT INTO "{Recipie}" (Ingredient, quantity, Ing_ID) VALUES (?,?,?)'
