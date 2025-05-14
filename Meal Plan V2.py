@@ -27,5 +27,23 @@ class shopping_list
             print(f'IntegrityError while creating table "{table_name}":{ie}')
         except sqlite3.ProgrammingError as pe:
             print(f'ProgrammingError while creating table "{table_name}":{pe}')
+
+    def ingredient_exist_check(self, table, column, value, id_column):
+
+        """This is a helper function that checks if an value is in a table and returns a unique ID code if so. If not it adds it to the table and returns the new ID"""
+        try:
+            self.cursor.execute(f'SELECT "{id_column}" FROM "{table}" WHERE "{column}" = ?', (value,))
+            row =self.cursor.fetchone()
+            if row:
+                return row[0]
+            self.cursor.execute(f'INSERT INTO "{table}" ("{column}") VALUES (?)',(value,))
+            self.connector.commit()
+            self.cursor.execute(f'SELECT "{id_column}" FROM "{table}" WHERE "{column}" = ?',(value,))
+            row  = self.cursor.fetchone()
+            return row[0] if row else None
+        except Exception as e:
+            print(f'Error in ingredients_self_check: {e}')
+            return None
+        
             
                 
