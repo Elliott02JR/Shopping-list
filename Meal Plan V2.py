@@ -45,5 +45,15 @@ class shopping_list
             print(f'Error in ingredients_self_check: {e}')
             return None
         
-            
-                
+    def check_input(self, prompt, validity_check, error_message):
+        while True:
+            try:
+                input = input(prompt)
+                if validity_check(input):
+                    return input
+                else:
+                    print(error_message)
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
+            except Exception as e:
+                print(f"Unexpected error: {e}. Please try again.")
