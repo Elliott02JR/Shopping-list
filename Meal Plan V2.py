@@ -64,8 +64,23 @@ class shopping_list
             return True
         else:
             return False
+        
+    def insert_row(self,table ,columns, values):
+        values_placeholders = ','.join(['?']) * len(values)
+        columns_string = ', '.join(columns)
+        try:
+            self.cursor.execute(f'INSERT INTO "{table}" ("{columns_string}")  VALUES ({values_placeholders})'values,)
+            self.connector.commit()
+            return True
+        except sqlite3.IntegrityError as ie:
+            print(f"Integrity error: {ie}")
+            return False
+        except sqlite3.OperationalError as oe:
+            print(f"Operational error: {oe}")
+        except Exception as e:
+            print(f"Unexpected error {e}")
 
-    def add_ingredient_to_recipe(self, recipe):
+    def add_ingredient_to_recipe(self, recipe, columns):
         """This function adds an ingredient to a recipe"""
         print("Please enter 'break' to exit the function")
         while True:
@@ -76,5 +91,5 @@ class shopping_list
             if quantity == "break":
                 break
             units = self.check_input("Enter the unit of the ingredient. Leave empty if it is unitless: ", lambda x: x.strip().lower() == "break" or self.valid_units(unit= x), "Invalid input, please enter one of the following: g, kg, ml, l, tsp, tbsp")
-        try:
-            self.cursor.execute(f'INSERT INTO  "{recipe}" ()')
+            ing_id = self.ingredient_exist_check(table="Ingredients",column="Ingredient", value = ing, ID_column='Ing_ID')
+            add_row = self.insert_row(table=recipe, columns=columns, values=(ing,quantity,units,ing_id))
