@@ -2,7 +2,7 @@ import sqlite3
 from tabulate import tabulate
 
 
-class shopping_list
+class ShoppingList:
     def __init__(self):
         self.connector = sqlite3.connect("Shopping List.db")
         self.cursor = self.connector.cursor()
@@ -48,8 +48,8 @@ class shopping_list
     def check_input(self, prompt, validity_check, error_message):
         while True:
             try:
-                input = input(prompt)
-                if validity_check(input):
+                user_input = input(prompt)
+                if validity_check(user_input):
                     return input
                 else:
                     print(error_message)
@@ -69,7 +69,7 @@ class shopping_list
         values_placeholders = ','.join(['?']) * len(values)
         columns_string = ', '.join(columns)
         try:
-            self.cursor.execute(f'INSERT INTO "{table}" ("{columns_string}")  VALUES ({values_placeholders})'values,)
+            self.cursor.execute(f'INSERT INTO "{table}" ({columns_string}) VALUES ({values_placeholders})', values)
             self.connector.commit()
             return True
         except sqlite3.IntegrityError as ie:
@@ -84,10 +84,10 @@ class shopping_list
         """This function adds an ingredient to a recipe"""
         print("Please enter 'break' to exit the function")
         while True:
-            ing = self.check_input("Enter the name of the ingredient: ",lambda x: 0 < len(x) < 20 and x.type == str, "Invalid input. Please enter a valid ingredient name.")
+            ing = self.check_input("Enter the name of the ingredient: ",lambda x: 0 < len(x) < 20 and isinstance(x,str), "Invalid input. Please enter a valid ingredient name.")
             if ing.strip().lower() == "break":
                 break
-            quantity = self.check_input("Enter the quantity of the ingredient: ", lambda x: (0 < x < 20 and x.type == float) or x.strip().lower() == 'break', "Invalid input. Please enter a valid number")
+            quantity = self.check_input("Enter the quantity of the ingredient: ", lambda x: (0 < x < 20) or x.strip().lower() == 'break', "Invalid input. Please enter a valid number")
             if quantity == "break":
                 break
             units = self.check_input("Enter the unit of the ingredient. Leave empty if it is unitless: ", lambda x: x.strip().lower() == "break" or self.valid_units(unit= x), "Invalid input, please enter one of the following: g, kg, ml, l, tsp, tbsp")
