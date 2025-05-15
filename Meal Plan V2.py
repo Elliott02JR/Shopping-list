@@ -57,3 +57,24 @@ class shopping_list
                 print("\nInput cancelled. Please try again.")
             except Exception as e:
                 print(f"Unexpected error: {e}. Please try again.")
+
+    def valid_units(self, unit):
+        units = ("g","kg","ml","l","tsp","tbsp", "")
+        if unit in units: 
+            return True
+        else:
+            return False
+
+    def add_ingredient_to_recipe(self, recipe):
+        """This function adds an ingredient to a recipe"""
+        print("Please enter 'break' to exit the function")
+        while True:
+            ing = self.check_input("Enter the name of the ingredient: ",lambda x: 0 < len(x) < 20 and x.type == str, "Invalid input. Please enter a valid ingredient name.")
+            if ing.strip().lower() == "break":
+                break
+            quantity = self.check_input("Enter the quantity of the ingredient: ", lambda x: (0 < x < 20 and x.type == float) or x.strip().lower() == 'break', "Invalid input. Please enter a valid number")
+            if quantity == "break":
+                break
+            units = self.check_input("Enter the unit of the ingredient. Leave empty if it is unitless: ", lambda x: x.strip().lower() == "break" or self.valid_units(unit= x), "Invalid input, please enter one of the following: g, kg, ml, l, tsp, tbsp")
+        try:
+            self.cursor.execute(f'INSERT INTO  "{recipe}" ()')
