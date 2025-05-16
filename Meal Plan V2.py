@@ -64,6 +64,12 @@ class ShoppingList:
             return True
         else:
             return False
+    def valid_days(self, day):
+        days_of_the_week = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+        if day in days_of_the_week:
+            return True
+        else
+            return False
         
     def insert_row(self,table ,columns, values):
         values_placeholders = ','.join(['?']) * len(values)
@@ -93,3 +99,54 @@ class ShoppingList:
             units = self.check_input("Enter the unit of the ingredient. Leave empty if it is unitless: ", lambda x: x.strip().lower() == "break" or self.valid_units(unit= x), "Invalid input, please enter one of the following: g, kg, ml, l, tsp, tbsp")
             ing_id = self.ingredient_exist_check(table="Ingredients",column="Ingredient", value = ing, ID_column='Ing_ID')
             add_row = self.insert_row(table=recipe, columns=columns, values=(ing,quantity,units,ing_id))
+    
+    def view_table(self, table, columns, headers):
+        try:
+            view_table = self.cursor.execute(f'SELECT {columns} FROM "{table}"').fetchall()
+            display_table = [[headers]]
+            for row in view_table:
+                display_table.append(row)
+            print(tabulate(display_table, headers= 'firstrow', tablefmt='fancy_grid'))
+            return True
+        except sqlite3.IntegrityError as ie:
+            print(f"IntegrityError detectde: {ie}")
+            return False
+        except sqlite3.OperationalError as oe:
+            print(f"OperationalError detected: {oe}")
+            return False
+        except Exception as e:
+            print(f"Unexpected error {e}")
+            return False
+
+    def update_row(self, table, set_column, set_values, where_column, where_value):
+        set_column_sql = ', '.join([f"{col} = ?" for col in set_column])
+        update_statment = f'UPDATE "{table}" SET {set_column_sql} WHERE {where_column} = ?'
+        try:
+            self.cursor.execute(update_statment,(@set_column_sql, where_value))
+            self.connector.commit()
+            print("Row has been updated")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+
+    def drop_table(self, table_to_drop):
+        while True:
+            try:
+                drop_table = f'DROP TABLE "{table_to_drop}"'
+                self.cursor.execute(drop_table)
+                self.connector.commit()
+                print("Table " + table_to_drop + " has been DELETED")
+                return
+            except sqlite3.OperationalError:
+                print ("This table does not exist")
+                return
+            except Exception as e:
+                print(f"OperationalError: {e}")
+                return e
+            except (EOFError, KeyboardInterrupt):
+                print("\nInput cancelled. Please try again.")
+    
+    def edit_meal_plan(self)
+        select_day = self.check_input(prompt= "Enter the day you want to edit", validity_check= lambda x:self.valid_days(day = select_day) or select_day.strip().lower() = "break", error_message= "Invalid input, please enter a day of the week")
+        
+
+        
