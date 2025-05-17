@@ -28,6 +28,12 @@ class ShoppingList:
         except sqlite3.ProgrammingError as pe:
             print(f'ProgrammingError while creating table "{table_name}":{pe}')
 
+    def create_key_tables(self):
+        self.create_table(table_name="Ingredients",params= "Ingredient char(20) PRIMARY KEY, Quantity INT NOT NULL, unit TEXT NOT NULL")
+        self.create_table(table_name="All Recipes", params="Recipe char(40) NOT NULL PRIMARY KEY, Portions INT NOT NULL")
+        self.create_table(table_name="Shopping List", params="Ingredient char(20) PRIMARY KEY, Quantity INT NOT NULL, unit TEXT NOT NULL")
+        self.create_table(table_name="Meal Plan", params="day TEXT NOT NULL PRIMARY KEY, meal TEXT NOT NULL",insert_rows=("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"))
+
     def ingredient_exist_check(self, table, column, value, id_column):
 
         """This is a helper function that checks if an value is in a table and returns a unique ID code if so. If not it adds it to the table and returns the new ID"""
@@ -75,7 +81,7 @@ class ShoppingList:
         values_placeholders = ','.join(['?']) * len(values)
         columns_string = ', '.join(columns)
         try:
-            self.cursor.execute(f'INSERT INTO "{table}" ({columns_string}) VALUES ({values_placeholders})', values)
+            self.cursor.execute(f'INSERT INTO "{table}" ({columns_string}) VALUES ({values_placeholders})', (values,))
             self.connector.commit()
             return True
         except sqlite3.IntegrityError as ie:
@@ -122,7 +128,7 @@ class ShoppingList:
         set_column_sql = ', '.join([f"{col} = ?" for col in set_column])
         update_statment = f'UPDATE "{table}" SET {set_column_sql} WHERE {where_column} = ?'
         try:
-            self.cursor.execute(update_statment,(@set_column_sql, where_value))
+            self.cursor.execute(update_statment,(*set_values, where_value))
             self.connector.commit()
             print("Row has been updated")
         except Exception as e:
@@ -145,8 +151,46 @@ class ShoppingList:
             except (EOFError, KeyboardInterrupt):
                 print("\nInput cancelled. Please try again.")
     
-    def edit_meal_plan(self)
-        select_day = self.check_input(prompt= "Enter the day you want to edit", validity_check= lambda x:self.valid_days(day = select_day) or select_day.strip().lower() = "break", error_message= "Invalid input, please enter a day of the week")
+    def edit_meal_plan(self, table, columns)
         
+        try:
+            select_day = self.check_input(prompt= f"Enter the day you want to edit", validity_check= lambda x:self.valid_days(day = select_day) or select_day.strip().lower() = "break", error_message= f"Invalid input, please enter a day of the week")
+            select_meal = self.check_input(prompt= f"Please enter the meal you would like on this day : {select_day}", validity_check= lambda x: 0 < len(x) < 40 and isinstance(x,str), error_message= "Please input a valid recpie" )
+            self.update_row(table= table, set_column= columns, set_values= select_meal, where_column= columns, where_value=select_day)
+        except (EOFError, KeyboardInterrupt):
+            print("\nInput cancelled. Please try again.")
+            return        
 
-        
+    def view_and_edit_meal_plan(self, table):
+        while True:
+            self.view_table(table=table, columns=("Day","Meal"), headers=["Day", "Meal"])
+            print("Please select one of the following options:\n1.Edit Meal\n2.Return to Menu")
+            while True:
+                selection_int = self.check_input(prompt="Please enter the number of the option you would like to select", validity_check= lambda x: 0 < x < 2 and isinstance(x,float), error_message="Please input a valid number")
+                if selection_int == 2:
+                    return
+                if selection_int == 1:
+                    self.edit_meal_plan(table=table)
+                    break
+    def check_value_in_table(self, table, column, value):
+        check_value = self.cursor.execute(f'SELECT EXISTS (SELECT 1 FROM "{table}" WHERE {column} = ?)',(value,))
+        exists, = self.cursor.fetchone()
+        if bool(exists):
+            return True
+        else:
+            return False
+    
+    def clear_table(self, table):
+        try:
+            self.cursor.execute(f'DELETE FROM "{table_name}"')
+            self.connector.commit()
+            print(f"Table cleared")
+        except Exception as e:
+            print(f"Operational error: {e}")
+
+    def main_code(self):
+        self.create_key_tables
+        while True:
+            self.view_table(table="All Recipes", columns=("recipe","portion"),headers=["Recipe","Portion"] )
+
+    
