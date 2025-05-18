@@ -37,7 +37,7 @@ class ShoppingList:
         self.create_table(table_name="Ingredients",params= "Ingredient char(20) PRIMARY KEY, Quantity INT NOT NULL, unit TEXT NOT NULL")
         self.create_table(table_name="All Recipes", params="Recipe char(40) NOT NULL PRIMARY KEY, Portions INT NOT NULL")
         self.create_table(table_name="Shopping List", params="Ingredient char(20) PRIMARY KEY, Quantity INT NOT NULL, unit TEXT NOT NULL")
-        self.create_table(table_name="Meal Plan", params="day TEXT NOT NULL PRIMARY KEY, meal TEXT NOT NULL",insert_rows=[("Monday",""), ("Tuesday",""), ("Wednesday",""), ("Thursday",""), ("Friday",""), ("Saturday",""), ("Sunday","")])
+        self.create_table(table_name="Meal Plan", params="day TEXT NOT NULL PRIMARY KEY, meal TEXT NOT NULL",insert_rows=[("monday",""), ("tuesday",""), ("wednesday",""), ("thursday",""), ("friday",""), ("saturday",""), ("sunday","")])
 
     def ingredient_exist_check(self, table, column, value, id_column):
 
@@ -84,10 +84,10 @@ class ShoppingList:
             return False
         
     def insert_row(self,table ,columns, values):
-        values_placeholders = ','.join(['?']) * len(values)
+        values_placeholders = ','.join(['?'] * len(values))
         columns_string = ', '.join(columns)
         try:
-            self.cursor.execute(f'INSERT INTO "{table}" ({columns_string}) VALUES ({values_placeholders})', (values,))
+            self.cursor.execute(f'INSERT INTO "{table}" ({columns_string}) VALUES ({values_placeholders})', values)
             self.connector.commit()
             return True
         except sqlite3.IntegrityError as ie:
@@ -146,9 +146,9 @@ class ShoppingList:
         except Exception as e:
             print(f"Unexpected error: {e}")
 
-    def remove_row(self, table, value):
+    def remove_row(self, table,column, value):
         try:
-            self.cursor.execute(f'DELETE FROM "{table}" WHERE "Ingredient" = ?', (value,))
+            self.cursor.execute(f'DELETE FROM "{table}" WHERE {column} = ?', (value,))
             self.connector.commit()
             print("Row has been deleted")
         except sqlite3.OperationalError as oe:
@@ -173,19 +173,19 @@ class ShoppingList:
             except (EOFError, KeyboardInterrupt):
                 print("\nInput cancelled. Please try again.")
     
-    def edit_meal_plan(self, table, columns):
+    def edit_meal_plan(self, table, column_meal, column_day):
         
         try:
-            select_day = self.check_input(prompt= f"Enter the day you want to edit", validity_check= lambda x:self.valid_days(day = select_day) or select_day.strip().lower() == "break", error_message= f"Invalid input, please enter a day of the week")
+            select_day = self.check_input(prompt= f"Enter the day you want to edit", validity_check= lambda x:self.valid_days(day = x.strip().lower()) or x.strip().lower() == "break", error_message= f"Invalid input, please enter a day of the week")
             select_meal = self.check_input(prompt= f"Please enter the meal you would like on this day : {select_day}", validity_check= lambda x: 0 < len(x) < 40 and isinstance(x,str), error_message= "Please input a valid recpie" )
-            self.update_row(table= table, set_column= columns, set_values= select_meal, where_column= columns, where_value=select_day)
+            self.update_row(table= table, set_column= (column_meal,), set_values= (select_meal,), where_column= column_day, where_value=select_day)
         except (EOFError, KeyboardInterrupt):
             print("\nInput cancelled. Please try again.")
             return        
 
     def view_and_edit_recipe(self, table):
         while True:
-            self.view_table(table= table, columns=("Ingredient","Quantity"),headers=["Ingredient","Quantity"])
+            self.view_table(table= table, columns=("ingredient","quantity","unit"),headers=["Ingredient","Quantity","Unit"])
             print("Please select one of the following options:\n1. Edit Ingredients\n2. Remove Ingredient\n3. Add Ingredient\n4. Return to menu")
             while True:
                 selection_int = self.check_input(prompt="Please enter the number of the option you would like to select", validity_check= lambda x: x.isdigit() and 0 < int(x) <= 4, error_message="Please input a valid number")
@@ -199,7 +199,8 @@ class ShoppingList:
                     self.update_row(table= table, set_column=("Ingredient","Quantity"),set_values=(new_ing,new_quantity), where_column="Ingredient", where_value=old_ing)
                 elif selection_int == 2:
                     edit_ing = self.check_input(prompt="Please enter the name of the ingredient you would like to remove", validity_check= lambda x: 0 < len(x) < 20 and isinstance(x,str), error_message="Please enter a valid ingredient")
-                    self.remove_row(table=table, value=edit_ing)
+                    self.remove_row(table=table,column='ingredient', value=edit_ing)
+                    self.remove_row(table = table, column= 'ingredient',value=edit_ing)
                 elif selection_int == 3:
                     self.add_ingredient_to_recipe(recipe=table, columns=("ingredient","quantity","unit"))
 
@@ -215,7 +216,7 @@ class ShoppingList:
                 if selection_int == 2:
                     return
                 if selection_int == 1:
-                    self.edit_meal_plan(table=table)
+                    self.edit_meal_plan(table=table,column_day='day', column_meal= 'meal')
                     break
 
     def check_value_in_table(self, table, column, value):
@@ -235,7 +236,7 @@ class ShoppingList:
             print(f"Operational error: {e}")
 
     def shopping_list(self):
-        self.view_table(table="Shopping List", columns=("Ingredient","Quantity","Units"),headers=["Ingredient","Quantity","Units"])
+        self.view_table(table="Shopping List", columns=("ingredient","quantity","unit"),headers=["Ingredient","Quantity","Units"])
         while True:
             print("Please select one of the following options:\n1. Create new shopping list\n2. Return to Menu")
             while True:
@@ -248,13 +249,17 @@ class ShoppingList:
                 
     def new_recipe(self):
         recipie_name = self.check_input(prompt="Please enter the recipie name.",validity_check=lambda x: 0 < len(x) < 20, error_message="Please enter a valid recipie")
-        self.create_table(table_name=recipie_name,params="Ingredient TEXT PRIMARY KEY, quantity int NOT NULL, unit TEXT NOT NULL",insert_rows= False)
-        self.add_ingredient_to_recipe(recipe=recipie_name, columns=("Ingredient","Quantity","Unit"))
+        portions = self.check_input(prompt="Please enter the number of portions this recipie makes", validity_check= lambda x: x.isdigit() and 0 < int(x) < 10, error_message="Please enter a valid number")
+        portions = int(portions)
+        self.insert_row(table="All Recipes", columns=("Recipe", "Portions"),values=(recipie_name,portions))
+        self.create_table(table_name=recipie_name,params="ingredient TEXT PRIMARY KEY, quantity int NOT NULL, unit TEXT NOT NULL",insert_rows= False)
+        self.add_ingredient_to_recipe(recipe=recipie_name, columns=("ingredient","quantity","unit"))
+        
     
     def main_code(self):
         self.create_key_tables()
         while True:
-            self.view_table(table="All Recipes", columns="Recipe, Portions", headers=["Recipe","Portion"])
+            self.view_table(table="All Recipes", columns=("Recipe", "Portions"), headers=["Recipe","Portion"])
             print("Please select one of the following options:\n1. View and Edit Recipie\n2. View and Edit this weeks meal plan\n3. Create and view a custom shopping list for this week\n4. Add a new recipie\n5. Delete Recipie\n6. Save and Exit")
             while True:
                 selection_int = self.check_input(prompt="Please enter the number of the option you would like to select",validity_check= lambda x: x.isdigit() and 0 < int(x) <= 6, error_message="Please input a valid number")
@@ -275,6 +280,7 @@ class ShoppingList:
                 elif selection_int == 5:
                     recipie_name = self.check_input(prompt="Please enter the recipie you would like to drop",validity_check=lambda x: 0 < len(x) < 20, error_message="Please enter a valid recipie")
                     self.drop_table(table_to_drop=recipie_name)
+                    self.remove_row(table = 'All Recipes',column= 'Recipe',value=recipie_name)
                     break
                 elif selection_int == 6:
                     self.connector.commit()
