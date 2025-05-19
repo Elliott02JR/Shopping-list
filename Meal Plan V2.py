@@ -38,28 +38,13 @@ class ShoppingList:
         self.create_table(table_name="All Recipes", params="Recipe char(40) NOT NULL PRIMARY KEY, Portions INT NOT NULL")
         self.create_table(table_name="Shopping List", params="Ingredient char(20) PRIMARY KEY, Quantity INT NOT NULL, unit TEXT NOT NULL")
         self.create_table(table_name="Meal Plan", params="day TEXT NOT NULL PRIMARY KEY, meal TEXT NOT NULL",insert_rows=[("monday",""), ("tuesday",""), ("wednesday",""), ("thursday",""), ("friday",""), ("saturday",""), ("sunday","")])
-
-    def ingredient_exist_check(self, table, column, value, id_column):
-
-        """This is a helper function that checks if an value is in a table and returns a unique ID code if so. If not it adds it to the table and returns the new ID"""
-        try:
-            self.cursor.execute(f'SELECT "{id_column}" FROM "{table}" WHERE "{column}" = ?', (value,))
-            row =self.cursor.fetchone()
-            if row:
-                return row[0]
-            self.cursor.execute(f'INSERT INTO "{table}" ("{column}") VALUES (?)',(value,))
-            self.connector.commit()
-            self.cursor.execute(f'SELECT "{id_column}" FROM "{table}" WHERE "{column}" = ?',(value,))
-            row  = self.cursor.fetchone()
-            return row[0] if row else None
-        except Exception as e:
-            print(f'Error in ingredients_self_check: {e}')
-            return None
-        
+       
     def check_input(self, prompt, validity_check, error_message):
         while True:
             try:
                 user_input = input(prompt)
+                if user_input.strip().lower() == "break":
+                    return "break"
                 if validity_check(user_input):
                     print(f"Debug: {user_input}")
                     return user_input
@@ -185,7 +170,7 @@ class ShoppingList:
 
     def view_and_edit_recipe(self, table):
         while True:
-            self.view_table(table= table, columns=("ingredient","quantity","unit"),headers=["Ingredient","Quantity","Unit"])
+            self.view_table(table= table, columns=("ingredient","Quantity","unit"),headers=["Ingredient","Quantity","Unit"])
             print("Please select one of the following options:\n1. Edit Ingredients\n2. Remove Ingredient\n3. Add Ingredient\n4. Return to menu")
             while True:
                 selection_int = self.check_input(prompt="Please enter the number of the option you would like to select", validity_check= lambda x: x.isdigit() and 0 < int(x) <= 4, error_message="Please input a valid number")
@@ -229,23 +214,57 @@ class ShoppingList:
     
     def clear_table(self, table):
         try:
-            self.cursor.execute(f'DELETE FROM "{table_name}"')
+            self.cursor.execute(f'DELETE FROM "{table}"')
             self.connector.commit()
             print(f"Table cleared")
         except Exception as e:
             print(f"Operational error: {e}")
 
     def shopping_list(self):
-        self.view_table(table="Shopping List", columns=("ingredient","quantity","unit"),headers=["Ingredient","Quantity","Units"])
         while True:
+            self.view_table(table="Shopping List", columns=("Ingredient","Quantity","unit"),headers=["Ingredient","Quantity","Units"])
             print("Please select one of the following options:\n1. Create new shopping list\n2. Return to Menu")
             while True:
-                selection_int = self.check_input(prompt="Please enter the number of the option you would like to select", validity_check= lambda x: 0 < x <= 6 and isinstance(x,int), error_message="Please input a valid number")
+                selection_int = self.check_input(prompt="Please enter the number of the option you would like to select", validity_check= lambda x:x.isdigit() and 0 < int(x) <= 6, error_message="Please input a valid number")
+                selection_int = int(selection_int)
                 if selection_int == 1:
-                    print("In progress")
+                    self.clear_table(table = 'Shopping List')
+                    self.new_shopping_list(meal_table='Meal Plan',shopping_table='Shopping List',recipe_table='All Recipes',meal='meal',ing='Ingredient',quant='Quantity',unit='unit',portions='portions',recipe='Recipe')
                     break
                 if selection_int == 2:
                     return
+                
+    def check_value_in_table(self, table, column, value):
+        self.cursor.execute(f'SELECT EXISTS (SELECT 1 FROM "{table}" WHERE {column} = ?)',(value,))
+        return self.cursor.fetchone()[0] == 1
+    
+    def new_shopping_list(self,meal_table,shopping_table,recipe_table,meal,ing,quant,unit,portions,recipe):
+        self.cursor.execute(f'SELECT {meal} FROM "{meal_table}"')
+        meal_plan = self.cursor.fetchall()
+        for row in meal_plan:
+            if row[0] == "":
+                continue
+            self.cursor.execute(f'SELECT {portions} FROM "{recipe_table}" WHERE {recipe} = ?',(row[0],))
+            portion = self.cursor.fetchone()
+            portion = float(portion[0])
+            self.cursor.execute(f'SELECT {ing},{quant},{unit} FROM "{row[0]}"')
+            find_recipe_table = self.cursor.fetchall()
+            for rows in find_recipe_table:
+                ingredient_to_add = rows[0]
+                quantity_to_add = float(rows[1])/portion
+                new_unit = rows[2]
+                exists = self.check_value_in_table(table=shopping_table,column= ing, value=ingredient_to_add)
+                print (exists)
+                if exists == True:
+                    self.cursor.execute(f'SELECT {quant} FROM "{shopping_table}" WHERE {ing} = ?', (ingredient_to_add,))
+                    old_quant = self.cursor.fetchone()
+                    print(old_quant,ingredient_to_add)
+                    old_quant = float(old_quant[0])
+                    quantity_to_add = old_quant + quantity_to_add
+                    self.cursor.execute(f'UPDATE "{shopping_table}" set {quant} = ? WHERE {ing} = ?', (quantity_to_add,ingredient_to_add))
+                else:
+                    self.insert_row(table=shopping_table, columns= (ing,quant,unit),values=(ingredient_to_add,quantity_to_add,new_unit))
+        self.connector.commit()
                 
     def new_recipe(self):
         recipie_name = self.check_input(prompt="Please enter the recipie name.",validity_check=lambda x: 0 < len(x) < 20, error_message="Please enter a valid recipie")
@@ -254,6 +273,7 @@ class ShoppingList:
         self.insert_row(table="All Recipes", columns=("Recipe", "Portions"),values=(recipie_name,portions))
         self.create_table(table_name=recipie_name,params="ingredient TEXT PRIMARY KEY, quantity int NOT NULL, unit TEXT NOT NULL",insert_rows= False)
         self.add_ingredient_to_recipe(recipe=recipie_name, columns=("ingredient","quantity","unit"))
+    
         
     
     def main_code(self):
