@@ -4,7 +4,7 @@ from tabulate import tabulate
 
 class ShoppingList:
     def __init__(self):
-        self.connector = sqlite3.connect("Shopping List.db")
+        self.connector = sqlite3.connect("Shopping List New.db")
         self.cursor = self.connector.cursor()
         self.active_table = None
 
@@ -239,32 +239,39 @@ class ShoppingList:
         return self.cursor.fetchone()[0] == 1
     
     def new_shopping_list(self,meal_table,shopping_table,recipe_table,meal,ing,quant,unit,portions,recipe):
-        self.cursor.execute(f'SELECT {meal} FROM "{meal_table}"')
-        meal_plan = self.cursor.fetchall()
-        for row in meal_plan:
-            if row[0] == "":
-                continue
-            self.cursor.execute(f'SELECT {portions} FROM "{recipe_table}" WHERE {recipe} = ?',(row[0],))
-            portion = self.cursor.fetchone()
-            portion = float(portion[0])
-            self.cursor.execute(f'SELECT {ing},{quant},{unit} FROM "{row[0]}"')
-            find_recipe_table = self.cursor.fetchall()
+        meals = self.get_meal_from_plan(meal_table= meal_table, meal_column= meal)
+        for row in meals:
+            portion = self.get_portion_for_recipe(recipe_table=recipe_table,portion_column=portions,recipe_column=recipe,recipe_name=row)
+            self.cursor.execute(f'SELECT {ing},{quant},{unit} FROM "{row}"')
+            find_recipe_table = self.get_ingredients_for_recipe(table=row,ing_col= ing,quant_col=quant,unit_col=unit)
             for rows in find_recipe_table:
                 ingredient_to_add = rows[0]
                 quantity_to_add = float(rows[1])/portion
                 new_unit = rows[2]
-                exists = self.check_value_in_table(table=shopping_table,column= ing, value=ingredient_to_add)
-                print (exists)
-                if exists == True:
-                    self.cursor.execute(f'SELECT {quant} FROM "{shopping_table}" WHERE {ing} = ?', (ingredient_to_add,))
-                    old_quant = self.cursor.fetchone()
-                    print(old_quant,ingredient_to_add)
-                    old_quant = float(old_quant[0])
-                    quantity_to_add = old_quant + quantity_to_add
-                    self.cursor.execute(f'UPDATE "{shopping_table}" set {quant} = ? WHERE {ing} = ?', (quantity_to_add,ingredient_to_add))
-                else:
-                    self.insert_row(table=shopping_table, columns= (ing,quant,unit),values=(ingredient_to_add,quantity_to_add,new_unit))
+                self.add_or_update_shopping_list(shopping_list_table=shopping_table,quantity=quant,ingredient=ing,unit=unit,ing_value=ingredient_to_add,quant_value=quantity_to_add,unit_value=new_unit)
         self.connector.commit()
+
+    def get_meal_from_plan(self, meal_table, meal_column):
+        self.cursor.execute(f'SELECT {meal_column} FROM "{meal_table}"')
+        return [row[0] for row in self.cursor.fetchall() if row[0]]
+    def get_portion_for_recipe(self, recipe_table, portion_column, recipe_column,recipe_name):
+        self.cursor.execute(f'SELECT {portion_column} FROM "{recipe_table}" WHERE {recipe_column} = ?',(recipe_name,))
+        portion = self.cursor.fetchone()
+        return float(portion[0]) if portion else 1.0
+    def get_ingredients_for_recipe(self, table, ing_col, quant_col, unit_col):
+        self.cursor.execute(f'SELECT {ing_col},{quant_col},{unit_col} FROM "{table}"')
+        return self.cursor.fetchall()
+    def add_or_update_shopping_list(self,shopping_list_table,quantity,ingredient,unit, ing_value,quant_value,unit_value):
+        ing_value = ing_value.strip().lower()
+        self.cursor.execute(f'UPDATE "{shopping_list_table}" SET {quantity} = {quantity} + ? WHERE {ingredient} = ?',(quant_value,ing_value))
+        if self.cursor.rowcount == 0:
+            try:
+                self.insert_row(table=shopping_list_table,columns=(ingredient,quantity,unit),values=(ing_value,quant_value,unit_value))
+            except sqlite3.IntegrityError:
+                print(f'Ingredient "{ing_value}" already exists in Shopping List')
+            
+    
+
                 
     def new_recipe(self):
         recipie_name = self.check_input(prompt="Please enter the recipie name.",validity_check=lambda x: 0 < len(x) < 20, error_message="Please enter a valid recipie")
