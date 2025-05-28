@@ -34,12 +34,15 @@ class ShoppingList:
             return
 
     def create_key_tables(self):
+        """Helper funtion that creates the Key tables needed for this project. Stored in one place in order to be bale ot edit nay parameters very easily"""
         self.create_table(table_name="Ingredients",params= "Ingredient char(20) PRIMARY KEY, Quantity INT NOT NULL, unit TEXT NOT NULL")
         self.create_table(table_name="All Recipes", params="Recipe char(40) NOT NULL PRIMARY KEY, Portions INT NOT NULL")
         self.create_table(table_name="Shopping List", params="Ingredient char(20) PRIMARY KEY, Quantity INT NOT NULL, unit TEXT NOT NULL")
         self.create_table(table_name="Meal Plan", params="day TEXT NOT NULL PRIMARY KEY, meal TEXT NOT NULL",insert_rows=[("monday",""), ("tuesday",""), ("wednesday",""), ("thursday",""), ("friday",""), ("saturday",""), ("sunday","")])
        
     def check_input(self, prompt, validity_check, error_message):
+        """Helper funtion that takes in a prompt (e.g. "Please enter an ingredient"), validity check to see if the value is allowed, and an error message if there is an problems. Also contains a check for if the user inputs break in any format"""
+        
         while True:
             try:
                 user_input = input(prompt)
@@ -56,12 +59,14 @@ class ShoppingList:
                 print(f"Unexpected error: {e}. Please try again.")
 
     def valid_units(self, unit):
+        """ This is a check to see if the units that are inputed are in the list "units". This improved reusability and cut down on the length of the code"""
         units = ("g","kg","ml","l","tsp","tbsp", "")
         if unit in units: 
             return True
         else:
             return False
     def valid_days(self, day):
+        """This is a check to see if the day inputed is a valid day. All lowercase as the check uses the .lower() function"""
         days_of_the_week = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
         if day in days_of_the_week:
             return True
@@ -69,6 +74,7 @@ class ShoppingList:
             return False
         
     def insert_row(self,table ,columns, values):
+        """inserts a row of data into a table. The columns and values parameters are tuples so you can insert as much data as needed across multiple table. Cut down on the lenth of the code as previous versions had and insert row for each table.""" 
         values_placeholders = ','.join(['?'] * len(values))
         columns_string = ', '.join(columns)
         try:
